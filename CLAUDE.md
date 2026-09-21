@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+@AGENTS.md
+
 ## Proyecto
 
 FlowSync es una aplicación de gestión de tareas en equipo, ejercicio del curso AI4Devs. Monorepo con backend (AdonisJS 7 + SQLite) y frontend (React 19 + Vite) independientes.
