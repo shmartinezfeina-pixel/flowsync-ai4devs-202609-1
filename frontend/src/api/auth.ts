@@ -37,11 +37,10 @@ const FIELD_LABELS: Record<string, string> = {
   passwordConfirmation: 'La confirmación de contraseña',
 }
 
+const GENERIC_ERROR = 'Ha ocurrido un error inesperado. Inténtalo de nuevo.'
+
 // Traduce un error del backend (VineJS o auth) a un mensaje claro en español
 function translateError(error: ApiError, status: number): string {
-  if (status === 400 && error.message === 'Invalid user credentials') {
-    return 'Email o contraseña incorrectos.'
-  }
   if (status === 401) {
     return 'Tu sesión ha caducado. Vuelve a iniciar sesión.'
   }
@@ -60,25 +59,32 @@ function translateError(error: ApiError, status: number): string {
     case 'sameAs':
       return 'Las contraseñas no coinciden.'
     default:
-      return error.message
+      return GENERIC_ERROR
   }
 }
 
 async function request<T>(url: string, init: RequestInit): Promise<T> {
   let res: Response
-  let body: { data?: T; errors?: ApiError[]; message?: string }
   try {
     res = await fetch(url, init)
-    body = await res.json()
   } catch {
     throw new ApiRequestError('No se pudo conectar con el servidor.', 0)
   }
+  let body: { data?: T; errors?: ApiError[] } | null = null
+  try {
+    body = await res.json()
+  } catch {
+    // Respuesta no-JSON (p. ej. página de error del proxy): conservamos el status real
+  }
   if (!res.ok) {
-    const messages = body.errors?.length
-      ? [...new Set(body.errors.map((e) => translateError(e, res.status)))]
-      : [body.message ?? 'Ha ocurrido un error inesperado.']
+    // Nunca reenviar a la UI el message/stack de una excepción del servidor
+    const messages =
+      res.status < 500 && body?.errors?.length
+        ? [...new Set(body.errors.map((e) => translateError(e, res.status)))]
+        : [GENERIC_ERROR]
     throw new ApiRequestError(messages.join(' '), res.status)
   }
+  if (!body) throw new ApiRequestError(GENERIC_ERROR, res.status)
   // El backend envuelve todas las respuestas en { data: ... }
   return body.data as T
 }
@@ -94,16 +100,29 @@ export async function signup(
   return request<AuthResponse>(`${BASE}/auth/signup`, {
     method: 'POST',
     headers: JSON_HEADERS,
-    body: JSON.stringify({ fullName: fullName || null, email, password, passwordConfirmation }),
+    body: JSON.stringify({
+      fullName: fullName.trim() || null,
+      email,
+      password,
+      passwordConfirmation,
+    }),
   })
 }
 
 export async function login(email: string, password: string): Promise<AuthResponse> {
-  return request<AuthResponse>(`${BASE}/auth/login`, {
-    method: 'POST',
-    headers: JSON_HEADERS,
-    body: JSON.stringify({ email, password }),
-  })
+  try {
+    return await request<AuthResponse>(`${BASE}/auth/login`, {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ email, password }),
+    })
+  } catch (err) {
+    // En /auth/login el 400 solo lo produce verifyCredentials (la validación da 422)
+    if (err instanceof ApiRequestError && err.status === 400) {
+      throw new ApiRequestError('Email o contraseña incorrectos.', 400)
+    }
+    throw err
+  }
 }
 
 export async function getProfile(token: string): Promise<UserProfile> {
