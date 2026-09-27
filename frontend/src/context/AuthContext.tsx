@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
 import type { UserProfile } from '../api/auth'
 
 interface AuthState {
@@ -19,15 +19,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { token, user: null }
   })
 
-  function setAuth(token: string, user: UserProfile) {
+  const setAuth = useCallback((token: string, user: UserProfile) => {
     localStorage.setItem('token', token)
     setState({ token, user })
-  }
+  }, [])
 
-  function clearAuth() {
+  const clearAuth = useCallback(() => {
     localStorage.removeItem('token')
     setState({ token: null, user: null })
-  }
+  }, [])
 
   return (
     <AuthContext.Provider value={{ ...state, setAuth, clearAuth }}>{children}</AuthContext.Provider>
