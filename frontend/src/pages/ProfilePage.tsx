@@ -55,9 +55,7 @@ export default function ProfilePage() {
             {profile.initials}
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">
-              {profile.fullName ?? profile.email}
-            </h1>
+            <h1 className="text-xl font-bold text-gray-900">{profile.fullName ?? profile.email}</h1>
             <p className="text-sm text-gray-500">{profile.email}</p>
           </div>
         </div>

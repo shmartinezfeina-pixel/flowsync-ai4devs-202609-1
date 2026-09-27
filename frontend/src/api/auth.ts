@@ -30,7 +30,7 @@ export async function signup(
   fullName: string,
   email: string,
   password: string,
-  passwordConfirmation: string
+  passwordConfirmation: string,
 ): Promise<AuthResponse> {
   const res = await fetch(`${BASE}/auth/signup`, {
     method: 'POST',
