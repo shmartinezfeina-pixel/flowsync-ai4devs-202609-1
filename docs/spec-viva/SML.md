@@ -27,12 +27,17 @@ Cada vez que la API devuelva un usuario SHALL incluir exactamente los campos `id
 #### Scenario: Usuario con nombre completo
 
 - **WHEN** se devuelve un usuario registrado con el nombre «Ada Byron Lovelace»
-- **THEN** `initials` vale `"AB"`: la primera letra de las dos primeras palabras, en mayúsculas
+- **THEN** `initials` vale `"AB"`: la primera letra del primer y del segundo trozo del nombre separados por un espacio, en mayúsculas
 
 #### Scenario: Usuario con nombre de una sola palabra
 
 - **WHEN** se devuelve un usuario registrado con el nombre «Ada»
 - **THEN** `initials` vale `"AD"`: las dos primeras letras del nombre, en mayúsculas
+
+#### Scenario: Nombre con espacios dobles
+
+- **WHEN** se devuelve un usuario registrado con el nombre «Ada  Byron» (dos espacios seguidos)
+- **THEN** `initials` vale `"AD"`: como el segundo trozo queda vacío, se toman las dos primeras letras del primero
 
 #### Scenario: Usuario sin nombre
 
@@ -114,7 +119,7 @@ El sistema SHALL permitir iniciar sesión con `POST /api/v1/auth/login` enviando
 #### Scenario: Datos con formato inválido
 
 - **WHEN** se envía un email sin formato válido o se omite la contraseña
-- **THEN** la respuesta es `422` con los errores por campo (`email`, `required`); en el inicio de sesión no se comprueba la longitud de la contraseña
+- **THEN** la respuesta es `422` con los errores por campo (`email`, `required`); en el inicio de sesión el email sí se limita a 254 caracteres, pero no se comprueba la longitud de la contraseña
 
 ### Requirement: Acceso autenticado y perfil por API
 
@@ -228,7 +233,7 @@ La pantalla de inicio de sesión SHALL mostrar el nombre «FlowSync», el títul
 
 ### Requirement: Mensajes de error de los formularios
 
-Los formularios de registro e inicio de sesión SHALL mostrar los errores en castellano. Los errores de validación que corresponden a campos visibles SHALL aparecer bajo su campo y, en ese caso, sin aviso general; cualquier otro error SHALL aparecer como aviso general encima del formulario. Al volver a enviar, los errores anteriores SHALL desaparecer. Los textos SHALL ser:
+Los formularios de registro e inicio de sesión SHALL mostrar los errores en castellano. Los errores de validación que corresponden a campos visibles SHALL aparecer bajo su campo; si todos los errores devueltos corresponden a campos visibles, SHALL NOT mostrarse aviso general. Si alguno no corresponde a un campo visible, SHALL aparecer además un aviso general encima del formulario con el mensaje del primer error. Cualquier otro error SHALL aparecer como aviso general. Al volver a enviar, los errores del envío anterior SHALL desaparecer. Cualquier rechazo `400` del servidor se presenta como credenciales incorrectas y cualquier estado de error distinto de `400`, `401` y `422` (con errores) como error inesperado del servidor. Los textos SHALL ser:
 
 - email ya registrado: «Ese email ya está registrado. Inicia sesión en su lugar.»
 - contraseñas distintas: «Las contraseñas no coinciden.»
@@ -237,6 +242,7 @@ Los formularios de registro e inicio de sesión SHALL mostrar los errores en cas
 - longitud mínima: «la contraseña debe tener al menos 8 caracteres.» (con el nombre del campo en minúscula al inicio)
 - longitud máxima: «la contraseña no puede superar los 32 caracteres.» (ídem)
 - credenciales incorrectas: «El email o la contraseña no son correctos.»
+- regla de validación sin texto propio: «Revisa el campo.» (con el nombre del campo, p. ej. «Revisa el email.»)
 - servidor inaccesible: «No se pudo conectar con el servidor. Comprueba que el backend está arrancado.»
 - error inesperado del servidor: «Algo ha ido mal en el servidor. Inténtalo de nuevo en un momento.»
 
@@ -247,7 +253,7 @@ Los formularios de registro e inicio de sesión SHALL mostrar los errores en cas
 
 #### Scenario: Error interno del servidor
 
-- **WHEN** el servidor responde con un error 5xx a un envío del formulario
+- **WHEN** el servidor responde a un envío del formulario con un error que no es `400`, `401` ni `422` (por ejemplo, un 5xx)
 - **THEN** la persona ve el aviso general «Algo ha ido mal en el servidor. Inténtalo de nuevo en un momento.»
 
 #### Scenario: Email con formato inválido
@@ -258,11 +264,11 @@ Los formularios de registro e inicio de sesión SHALL mostrar los errores en cas
 #### Scenario: Reintento
 
 - **WHEN** una persona corrige un formulario que mostraba errores y lo vuelve a enviar
-- **THEN** los errores anteriores desaparecen en cuanto empieza el nuevo envío
+- **THEN** los errores del envío anterior desaparecen en cuanto empieza el nuevo envío; si había un aviso de sesión perdida en el inicio de sesión, ese aviso vuelve a mostrarse mientras se envía y solo desaparece si la entrada tiene éxito
 
 ### Requirement: Persistencia de la sesión en el navegador
 
-La aplicación web SHALL recordar la sesión en el navegador tras registrarse o iniciar sesión, de modo que siga abierta al recargar o volver más tarde. Al abrir la aplicación con una sesión recordada SHALL comprobarla con el servidor antes de mostrar ninguna pantalla, mostrando entretanto un indicador de carga.
+La aplicación web SHALL recordar la sesión en el navegador tras registrarse o iniciar sesión, de modo que siga abierta al recargar o volver más tarde. Al abrir la aplicación con una sesión recordada SHALL comprobarla con el servidor antes de mostrar ninguna pantalla, mostrando entretanto un indicador de carga. El motivo por el que no se pudo restaurar la sesión SHALL mostrarse solo en la pantalla de inicio de sesión, nunca en la de registro.
 
 #### Scenario: Recarga con sesión válida
 
@@ -276,7 +282,7 @@ La aplicación web SHALL recordar la sesión en el navegador tras registrarse o 
 
 #### Scenario: Servidor inaccesible al abrir la aplicación
 
-- **WHEN** la aplicación se abre con una sesión recordada y el servidor no responde o responde con un error 5xx
+- **WHEN** la aplicación se abre con una sesión recordada y el servidor no responde o la rechaza con un error distinto de `401` (por ejemplo, un 5xx)
 - **THEN** la persona acaba en la pantalla de inicio de sesión con el aviso correspondiente («No se pudo conectar con el servidor…» o «Algo ha ido mal en el servidor…»), pero la sesión no se olvida: al recargar con el servidor disponible vuelve a entrar sin introducir credenciales
 
 #### Scenario: Aviso de sesión frente a error del formulario
