@@ -317,3 +317,37 @@ Al pulsar «Cerrar sesión», la aplicación web SHALL olvidar la sesión en el 
 
 - **WHEN** una persona pulsa «Cerrar sesión» y el servidor no responde
 - **THEN** la sesión se cierra igualmente en el navegador y no se muestra ningún error
+
+
+# PARTE B
+## 1.-Listado de requisitos obtenidos:comprobado (SI/NO) 
+
+| # | Requisito | Comprobado |
+|---|---|---|
+| 1 | Formato común de las respuestas de la API | No |
+| 2 | Representación pública del usuario | Sí |
+| 3 | Registro de cuenta por API | Sí |
+| 4 | Validación del registro | Sí |
+| 5 | Inicio de sesión por API | No |
+| 6 | Acceso autenticado y perfil por API | No |
+| 7 | Cierre de sesión por API | No |
+| 8 | Navegación según el estado de la sesión en la web | No |
+| 9 | Pantalla de registro | Sí |
+| 10 | Pantalla de inicio de sesión | No |
+| 11 | Mensajes de error de los formularios | No |
+| 12 | Persistencia de la sesión en el navegador | No |
+| 13 | Pantalla de perfil | No |
+| 14 | Cierre de sesión desde la web | No |
+
+## 2.- Incoherencias de tipo:
+  ### Nivel de detalle muy exhaustivo casi a nivel de código
+  - Esto se puede ver en el primer requisito del documento (Requirement: Formato común de las respuestas de la API) y se da en muchos otros del backend
+  ### Utlización de nombre de campos en ingles, cuando todo debería estar en castellano
+  - Ver el requsisito "Registro de cuenta por API" aunque en el escenario si que utiliza nombres correctos
+  ### En el backend y en el frontemd se han usado codigos de respuesta HTTP (200,422, etc)
+  - Ver el requsisitos "Registro de cuenta por API" y "Recarga con sesión válida"
+  
+## 3.- Error o contrato
+- En cuanto al registros de un usuario, el email distingue mayúsculas por lo tanto ana@x.com y ANA@x.com son dos cuentas distintas
+- Al introducir el nombre compuesto con varios espacios en blanco, las inciales se calculan mal
+- Otra relacionada con temas de seguridad sería al entrar el usaurio el token se registra y es valido siempre (nunca caduca). 
