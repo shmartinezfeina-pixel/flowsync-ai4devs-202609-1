@@ -8,7 +8,7 @@ Permitir que una persona cree una cuenta en FlowSync, inicie y cierre sesión y 
 
 ### Requirement: Respuestas de la API en JSON
 
-La API de cuentas SHALL responder siempre en JSON, aunque la petición pida otro formato. Las respuestas correctas SHALL ir envueltas en una clave `data`, salvo la del cierre de sesión. Las respuestas de error SHALL llevar una lista `errors` en la que cada elemento tiene un `message` y, si el error es de validación, el `field` afectado y la `rule` incumplida.
+Las rutas de cuentas de la API SHALL responder siempre en JSON, aunque la petición pida otro formato. Las respuestas correctas SHALL ir envueltas en una clave `data`, salvo la del cierre de sesión. Las respuestas de error SHALL llevar una lista `errors` en la que cada elemento tiene un `message` y, si el error es de validación, el `field` afectado y la `rule` incumplida.
 
 #### Scenario: Petición que pide HTML
 
@@ -36,7 +36,7 @@ Cada vez que la API devuelva un usuario, SHALL incluir exactamente su identifica
 
 ### Requirement: Iniciales del usuario
 
-Las iniciales del usuario SHALL ir en mayúsculas. Con un nombre de dos o más palabras, SHALL ser la primera letra de cada una de las dos primeras palabras. Con un nombre de una sola palabra, SHALL ser sus dos primeras letras. Sin nombre, SHALL ser la primera letra de lo que va antes de la arroba del email y la de lo que va después.
+Las iniciales del usuario SHALL ir en mayúsculas. Con un nombre de dos o más palabras separadas por un espacio, SHALL ser la primera letra de cada una de las dos primeras palabras. Con un nombre de una sola palabra, SHALL ser sus dos primeras letras (o la única, si solo tiene una). Sin nombre, SHALL ser la primera letra de lo que va antes de la arroba del email y la de lo que va después.
 
 #### Scenario: Nombre de varias palabras
 
@@ -62,9 +62,28 @@ El sistema SHALL permitir crear una cuenta mediante `POST /api/v1/auth/signup` c
 - **WHEN** un cliente registra un email nuevo con una contraseña de 8 caracteres repetida igual en la confirmación
 - **THEN** recibe `200` con el usuario y un token, y ese token da acceso inmediato al perfil
 
+#### Scenario: Forma de la respuesta de registro
+
+- **WHEN** un registro se completa correctamente
+- **THEN** la respuesta tiene la forma `{ "data": { "user": { … }, "token": "…" } }`
+
+### Requirement: Recorte de espacios en la API
+
+En las peticiones de registro e inicio de sesión, el sistema SHALL quitar los espacios al principio y al final de todos los campos de texto (nombre, email, contraseña y confirmación) antes de validarlos y guardarlos. Un campo que queda vacío tras el recorte SHALL tratarse como ausente.
+
+#### Scenario: Contraseña con espacios en los extremos
+
+- **WHEN** un cliente se registra con la contraseña «  1234567  » y la confirmación «1234567»
+- **THEN** recibe `422` por longitud mínima, porque tras el recorte la contraseña tiene 7 caracteres
+
+#### Scenario: Contraseña solo con espacios en el login
+
+- **WHEN** un cliente inicia sesión con la contraseña «   »
+- **THEN** recibe `422` con un error `required` sobre la contraseña
+
 ### Requirement: Nombre y email en el registro
 
-La clave del nombre SHALL estar presente en la petición de registro, aunque su valor sea `null`. Un nombre vacío o formado solo por espacios SHALL guardarse como «sin nombre». El sistema SHALL quitar los espacios al principio y al final del nombre y del email antes de guardarlos.
+La clave del nombre SHALL estar presente en la petición de registro, aunque su valor sea `null`. Un nombre vacío o formado solo por espacios SHALL guardarse como «sin nombre», y el email SHALL guardarse sin espacios en los extremos.
 
 #### Scenario: Nombre en blanco
 
@@ -130,7 +149,7 @@ El sistema SHALL permitir iniciar sesión mediante `POST /api/v1/auth/login` con
 #### Scenario: Credenciales correctas
 
 - **WHEN** un cliente inicia sesión con el email y la contraseña de una cuenta existente
-- **THEN** recibe `200` con el usuario y un token que da acceso al perfil
+- **THEN** recibe `200` con el usuario y un token que da acceso al perfil, con la forma `{ "data": { "user": { … }, "token": "…" } }`
 
 #### Scenario: Varias sesiones simultáneas
 
@@ -289,7 +308,7 @@ Los formularios de acceso SHALL mostrar los errores de validación en castellano
 
 ### Requirement: Mensajes de fallo del servidor
 
-Si el servidor no responde, los formularios de acceso SHALL mostrar en el aviso general «No se pudo conectar con el servidor. Comprueba que el backend está arrancado.». Si el servidor falla por un error interno, SHALL mostrar «Algo ha ido mal en el servidor. Inténtalo de nuevo en un momento.».
+Si el servidor no responde, los formularios de acceso SHALL mostrar en el aviso general «No se pudo conectar con el servidor. Comprueba que el backend está arrancado.». Ante cualquier otra respuesta de error que no sea de credenciales, de sesión o de validación (por ejemplo, un error interno), SHALL mostrar «Algo ha ido mal en el servidor. Inténtalo de nuevo en un momento.».
 
 #### Scenario: Servidor apagado
 
@@ -312,7 +331,7 @@ La aplicación web SHALL recordar la sesión en el navegador, de modo que siga i
 
 ### Requirement: Sesión recordada que no se puede restaurar
 
-Si el servidor rechaza la sesión recordada, la aplicación web SHALL olvidarla y llevar al inicio de sesión con el aviso «Tu sesión ha caducado. Vuelve a iniciar sesión.». Si el servidor no responde, SHALL llevar al inicio de sesión con el aviso de servidor inaccesible, pero SHALL conservar la sesión recordada para recuperarla al recargar con el servidor ya disponible.
+Si el servidor rechaza la sesión recordada, la aplicación web SHALL olvidarla y llevar al inicio de sesión con el aviso «Tu sesión ha caducado. Vuelve a iniciar sesión.». Si el servidor no responde o falla con otro error, SHALL llevar al inicio de sesión con el aviso correspondiente, pero SHALL conservar la sesión recordada para recuperarla al recargar cuando el servidor funcione.
 
 #### Scenario: Sesión rechazada por el servidor
 
@@ -323,6 +342,11 @@ Si el servidor rechaza la sesión recordada, la aplicación web SHALL olvidarla 
 
 - **WHEN** una persona abre la aplicación con una sesión recordada y el servidor está apagado
 - **THEN** ve el inicio de sesión con el aviso de servidor inaccesible, y al recargar con el servidor ya encendido vuelve a ver su perfil
+
+#### Scenario: Error interno al abrir la aplicación
+
+- **WHEN** una persona abre la aplicación con una sesión recordada y el servidor responde con un error interno al comprobarla
+- **THEN** ve el inicio de sesión con el aviso «Algo ha ido mal en el servidor. Inténtalo de nuevo en un momento.», y al recargar con el servidor ya recuperado vuelve a ver su perfil
 
 #### Scenario: Aviso de sesión frente a error del formulario
 
@@ -350,7 +374,7 @@ La pantalla de perfil SHALL mostrar:
 
 ### Requirement: Cierre de sesión desde la web
 
-Al pulsar «Cerrar sesión», la aplicación web SHALL olvidar la sesión en el navegador y llevar a la persona al inicio de sesión de inmediato. También SHALL pedir al servidor que cierre esa sesión, sin mostrar ningún error si esa petición falla.
+Al pulsar «Cerrar sesión», el botón SHALL pasar a «Cerrando sesión…» y desactivarse, y la aplicación web SHALL olvidar la sesión en el navegador y llevar a la persona al inicio de sesión de inmediato. También SHALL pedir al servidor que cierre esa sesión, sin mostrar ningún error si esa petición falla.
 
 #### Scenario: Cierre de sesión
 
