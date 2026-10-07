@@ -42,9 +42,17 @@ const isCompleteDate = (input: HTMLInputElement) =>
   /^\d{4}-\d{2}-\d{2}$/.test(input.value) &&
   Number(input.value.slice(0, 4)) >= 1000
 
+/**
+ * React Router reutiliza el componente al pasar de `/tasks/1` a `/tasks/2`
+ * (Atrás, Adelante, URL a mano). Con `key` cada tarea tiene su propio estado y
+ * sus propios refs: un guardado en vuelo nunca acaba en la tarea equivocada.
+ */
 export function TaskPage() {
   const { id } = useParams()
-  const taskId = Number(id)
+  return <TaskView key={id} taskId={Number(id)} />
+}
+
+function TaskView({ taskId }: { taskId: number }) {
   const { token } = useAuth()
   const [task, setTask] = useState<Task | null>(null)
   const [loadState, setLoadState] = useState<LoadState>('loading')
@@ -148,7 +156,11 @@ export function TaskPage() {
     const input = event.target
     setDraft(input.value)
     cancelTimer()
-    if (!isCompleteDate(input)) return
+    if (!isCompleteDate(input)) {
+      // Lo pendiente ya no es lo que hay en el campo: no debe enviarse al salir.
+      pendingRef.current = undefined
+      return
+    }
 
     pendingRef.current = input.value
     timerRef.current = setTimeout(() => {
