@@ -4,40 +4,43 @@
 
 ## 1. Modelo de datos (backend)
 
-- [ ] 1.1 Crear con `node ace make:migration` la tabla `tasks`:
+- [ ] 1.1 Crear `app/models/task_status.ts`, sin dependencias del esquema, con `TASK_STATUSES` (`pending`, `in_progress`, `done`) y el tipo `TaskStatus`, según design D1. Verificar con `npm run typecheck` en `backend/`.
+- [ ] 1.2 Crear con `node ace make:migration` la tabla `tasks`, importando los estados de `#models/task_status` y nunca de `#models/task`:
   - `title`: `string(255)`, no nulo.
-  - `status`: `enum('pending','in_progress','done')`, no nulo, default `pending`.
+  - `status`: `enum(TASK_STATUSES)`, no nulo, default `pending`.
   - `assignee_id`: FK a `users.id`, no nula, `CASCADE`.
   - `created_at` y `updated_at`.
   - Sin columna de vencimiento (design D1).
 
   Verificar que `node ace migration:run` pasa y que `database/schema.ts` contiene `TaskSchema` con esas columnas.
-- [ ] 1.2 Crear `app/models/task.ts`, que extiende `TaskSchema` y declara la relación `assignee` (`belongsTo` User por `assigneeId`), más la constante exportada `TASK_STATUSES`. Verificar con `npm run typecheck` en `backend/`.
+- [ ] 1.3 Crear `app/models/task.ts`, que extiende `TaskSchema` y declara la relación `assignee` (`belongsTo` User por `assigneeId`). Si el esquema generado tipa `status` como `string`, estrecharlo con `declare status: TaskStatus`. Verificar con `npm run typecheck` en `backend/`.
 
 ## 2. API de tareas (backend)
 
-- [ ] 2.1 Crear `app/validators/task.ts` con `createTaskValidator` (solo `title`) y `updateTaskValidator` (`title`, `status` y `assigneeId` opcionales, con `vine.enum(TASK_STATUSES)` y `exists` sobre `users.id`), según design D4. Verificar con `npm run typecheck`.
+- [ ] 2.1 Crear `app/validators/task.ts` con `createTaskValidator` (solo `title`) y `updateTaskValidator` (`title`, `status` y `assigneeId` opcionales, con `vine.enum(TASK_STATUSES)` y `vine.number().withoutDecimals().positive().exists(...)` sobre `users.id`), según design D4. Verificar con `npm run typecheck`.
 - [ ] 2.2 Crear `app/transformers/task_transformer.ts` (`id`, `title`, `status`, `assignee`) y `assignee_transformer.ts` (`id`, `fullName`), según design D3. Verificar con `npm run typecheck`.
 - [ ] 2.3 Crear `app/controllers/tasks_controller.ts`:
   - `index`: precarga `assignee` y no usa `orderBy`.
   - `store`: devuelve 201, `pending` y responsable igual al usuario autenticado.
-  - `update`: `findOrFail`, valida antes de `merge` y precarga `assignee`.
+  - `update`: en este orden, (1) rechaza con 422 `required` las claves `title`, `status` o `assigneeId` presentes con `null`, lanzando `errors.E_VALIDATION_ERROR`; (2) valida; (3) `findOrFail`; (4) `merge`, `save` y precarga `assignee` (design D3 y D4).
 
   Verificar con `npm run typecheck`.
-- [ ] 2.4 Registrar en `start/routes.ts` un grupo `tasks` con `middleware.auth()` y solo `GET /`, `POST /` y `PATCH /:id` (matcher numérico). Arrancar `npm run dev` para regenerar `.adonisjs/`. Verificar que `node ace list:routes` muestra exactamente esas tres rutas de tareas y ninguna `show` ni `destroy`.
+- [ ] 2.4 Registrar en `start/routes.ts` un grupo `.prefix('tasks').as('tasks')` con `middleware.auth()` y solo `GET /`, `POST /` y `PATCH /:id` (matcher numérico). Arrancar `npm run dev` para regenerar `.adonisjs/`. Verificar que `node ace list:routes` muestra exactamente esas tres rutas de tareas (el `GET` aparece como `GET|HEAD`, lo normal en AdonisJS) y ninguna `show` ni `destroy`.
 - [ ] 2.5 Verificar la API con `curl` y un token de una cuenta de prueba, cubriendo los escenarios de `specs/tasks/spec.md`:
-  - Acceso: 401 sin token. 404 en `GET /tasks/1` y en `DELETE /tasks/1`.
+  - Acceso: 401 sin token y con un token inventado. 404 en `GET /tasks/1` y en `DELETE /tasks/1`.
   - Creación: 201 con `pending` y el creador como responsable, ignorando el `status` o `assigneeId` enviados.
   - Validación del título: 422 con título vacío, con solo espacios y con 256 caracteres. Se acepta con 255.
   - Actualización correcta: 200 al cambiar el estado de una tarea ajena, al volver desde `done`, al reasignar y al cambiar el título.
-  - Actualización inválida: 422 con estado `blocked` o `Hecho`, con un responsable inexistente, y con estado válido más título en blanco, en cuyo caso no cambia nada. 404 con un id inexistente.
+  - Actualización inválida: 422 con estado `blocked` o `Hecho`, con un responsable inexistente o con `1.5`, y con estado `null`.
+  - Campos en blanco al actualizar: 422 con solo el título «   », y con estado válido más título en blanco, en cuyo caso no cambia nada.
+  - Tarea inexistente: 404 con datos válidos y 422 con datos inválidos.
   - Forma de la respuesta: el JSON del responsable no contiene `email`.
 - [ ] 2.6 Ejecutar `npm run lint` y `npm run format` en `backend/`, y commitear el diff regenerado de `database/schema.ts` y `.adonisjs/`. Verificar que el lint sale limpio.
 
 ## 3. Cliente de API y tipos (frontend)
 
 - [ ] 3.1 Añadir a `src/lib/types.ts` `TaskStatus`, `Task` (responsable con `id` y `fullName`) y `TASK_STATUS_LABELS` (`Pendiente` / `En curso` / `Hecho`). Verificar con `npm run build`.
-- [ ] 3.2 Añadir a `src/lib/api.ts` `listTasks`, `createTask` y `updateTask` usando `request()`. Añadir también `title` a `FIELD_LABELS` y los mensajes específicos del título: «Escribe un título para la tarea.» y «El título no puede superar los 255 caracteres.», según design D5. Verificar con `npm run build` y comprobar que los mensajes de auth no cambian.
+- [ ] 3.2 Ampliar el tipo `method` de `request()` a `'GET' | 'POST' | 'PATCH'` y añadir a `src/lib/api.ts` `listTasks`, `createTask` y `updateTask`. Añadir también `title` a `FIELD_LABELS` y los mensajes específicos del título: «Escribe un título para la tarea.» y «El título no puede superar los 255 caracteres.», según design D5. Verificar con `npm run build` y comprobar que los mensajes de auth no cambian.
 
 ## 4. Pantalla de Tareas (frontend)
 
@@ -75,7 +78,7 @@
   - Las dos ven el mismo conjunto de tareas tras recargar.
   - Una tarea creada por B aparece en la lista de A tras recargar, con «Sin nombre» si B no tiene nombre.
   - A puede cambiar el estado de la tarea de B.
-- [ ] 6.2 Ejecutar `openspec validate add-task-list --strict` y verificar que sale válido.
+- [ ] 6.2 Ejecutar `npx -y @fission-ai/openspec@latest validate add-task-list --strict` y verificar que sale válido.
 
 ## Workflow follow-up
 

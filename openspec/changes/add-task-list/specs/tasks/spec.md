@@ -43,6 +43,11 @@ Todas las operaciones de tareas SHALL exigir un token de sesión válido. Sin é
 - **WHEN** un cliente pide la lista de tareas sin token
 - **THEN** recibe `401` y ninguna tarea
 
+#### Scenario: Token inventado o revocado
+
+- **WHEN** un cliente pide la lista o actualiza una tarea con un token que nunca existió o que ya se cerró
+- **THEN** recibe `401` y no se devuelve ni se modifica ninguna tarea
+
 #### Scenario: Crear sin sesión
 
 - **WHEN** un cliente intenta crear una tarea sin token
@@ -155,7 +160,7 @@ El título SHALL ser obligatorio. El sistema SHALL quitar los espacios de los ex
 
 ### Requirement: Actualización inválida
 
-Al actualizar, el sistema SHALL aplicar al título las mismas reglas que al crear y SHALL rechazar un estado fuera de los tres valores o un responsable que no sea una persona registrada. En esos casos SHALL responder `422` y SHALL NOT modificar ningún campo. Si la tarea no existe, SHALL responder `404`.
+Al actualizar, un campo enviado vacío o en blanco SHALL rechazarse, nunca ignorarse. El título SHALL seguir las mismas reglas que al crear. SHALL rechazarse un estado fuera de los tres valores o un responsable que no sea una persona registrada. En esos casos SHALL responder `422` y SHALL NOT modificar ningún campo. Si los datos son válidos pero la tarea no existe, SHALL responder `404`.
 
 #### Scenario: Responsable inexistente
 
@@ -167,10 +172,25 @@ Al actualizar, el sistema SHALL aplicar al título las mismas reglas que al crea
 - **WHEN** un cliente envía a la vez un estado válido y un título en blanco
 - **THEN** recibe `422` y ni el estado ni el título cambian
 
+#### Scenario: Título en blanco al actualizar
+
+- **WHEN** un cliente actualiza una tarea enviando solo el título «   »
+- **THEN** recibe `422` con un error sobre el título y la tarea conserva su título
+
+#### Scenario: Estado vacío al actualizar
+
+- **WHEN** un cliente actualiza una tarea enviando el estado vacío o `null`
+- **THEN** recibe `422` con un error sobre el estado y la tarea no cambia
+
 #### Scenario: Tarea inexistente
 
-- **WHEN** un cliente actualiza una tarea con un identificador que no existe
+- **WHEN** un cliente actualiza con datos válidos una tarea cuyo identificador no existe
 - **THEN** recibe `404`
+
+#### Scenario: Datos inválidos sobre una tarea inexistente
+
+- **WHEN** un cliente envía un estado inválido a una tarea cuyo identificador no existe
+- **THEN** recibe `422`, porque los datos se validan antes de buscar la tarea
 
 ### Requirement: Pantalla de la lista de tareas
 

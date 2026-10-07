@@ -40,7 +40,11 @@ Migración nueva con las columnas `id`, `title` (`string(255)`, no nula) y `stat
 - **No se guarda `created_by`.** Hoy creador y responsable inicial coinciden, y ninguna historia del alcance necesita distinguirlos. Añadirlo «por si acaso» sería un dato sin consumidor.
 - **No hay columna de vencimiento**, por la restricción 1.
 
-Tras `node ace migration:run`, el modelo `Task` extiende `TaskSchema` (generado) y solo declara `@belongsTo(() => User, { foreignKey: 'assigneeId' }) declare assignee`.
+**La lista de estados vive en `app/models/task_status.ts`**, un módulo sin dependencias: `export const TASK_STATUSES = ['pending', 'in_progress', 'done'] as const` y `export type TaskStatus = (typeof TASK_STATUSES)[number]`. La importan la migración, el modelo y el validador vía `#models/task_status`.
+
+No puede vivir en `#models/task`. Ese modelo extiende `TaskSchema`, que solo existe en `database/schema.ts` después de correr la migración, así que el primer `migration:run` fallaría al importarlo.
+
+Tras `node ace migration:run`, el modelo `Task` extiende `TaskSchema` (generado) y solo declara `@belongsTo(() => User, { foreignKey: 'assigneeId' }) declare assignee`. Si el generador tipa `status` como `string` y no como la unión, el modelo lo estrecha con `declare status: TaskStatus`. Afecta solo a los tipos.
 
 ### D2. Rutas: tres, dentro del grupo autenticado
 
@@ -52,14 +56,15 @@ PATCH  /api/v1/tasks/:id   → TasksController.update
 
 - Las rutas se declaran a mano con `router.get/post/patch`, no con `router.resource()`, para que no aparezcan `show` ni `destroy`, que la restricción 2 prohíbe.
 - `:id` lleva el matcher numérico, así que un identificador no numérico da 404 de ruta.
-- Van en un grupo nuevo `.prefix('tasks')` con `.use(middleware.auth())`, que es el mismo patrón que el grupo `account`.
+- Van en un grupo nuevo `.prefix('tasks').as('tasks')` con `.use(middleware.auth())`, que es el mismo patrón que los grupos `auth` y `account`. El `.as()` da nombre a las rutas en el registro Tuyau.
+- AdonisJS registra `HEAD` junto a todo `GET`, así que `node ace list:routes` mostrará `GET|HEAD /api/v1/tasks`. No es una cuarta operación.
 - Se usa `PATCH` y no `PUT` porque la actualización es parcial.
 
 ### D3. Respuestas
 
 - `index`: `serialize(TaskTransformer.transform(tasks))`, con `Task.query().preload('assignee')` y **sin `orderBy`** (restricción 4). El orden resultante es el que devuelva SQLite. Se documenta como no garantizado.
 - `store`: `response.status(201)` y después `serialize(...)`. Se usa 201 y no el 200 del signup porque es la semántica correcta de creación, y la spec de auth no obliga a mantener el 200 en otros recursos.
-- `update`: `Task.findOrFail(params.id)`, que da 404 si no existe. Después `merge(payload)`, `save()`, `load('assignee')` y `serialize(...)`.
+- `update`: **primero valida** (puede dar 422) y **después** hace `Task.findOrFail(params.id)` (404 si no existe). Así, una petición inválida contra un id inexistente da 422. Después `merge(payload)`, `save()`, `load('assignee')` y `serialize(...)`.
 - **`TaskTransformer`**: `pick(['id', 'title', 'status'])`, más `assignee: AssigneeTransformer.transform(this.whenLoaded(this.resource.assignee))`. `AssigneeTransformer` hace `pick(['id', 'fullName'])`.
   - Se descarta reutilizar `UserTransformer`, porque expone el email, las iniciales y las fechas, justo lo que la nota de E3-1 pide no filtrar.
   - Tampoco se exponen `createdAt` ni `updatedAt` de la tarea: la lista no muestra fechas y no hay consumidor.
@@ -68,10 +73,14 @@ PATCH  /api/v1/tasks/:id   → TasksController.update
 
 - Builder compartido `title = () => vine.string().trim().minLength(1).maxLength(255)`. El bodyparser ya recorta y convierte `""` en `null`; el `trim()` explícito deja la regla autocontenida.
 - `createTaskValidator = vine.create({ title: title() })`. VineJS descarta las claves no declaradas, así que `status` y `assigneeId` enviados al crear se ignoran sin error, como pide la spec.
-- `updateTaskValidator = vine.create({ title: title().optional(), status: vine.enum(TASK_STATUSES).optional(), assigneeId: vine.number().exists({ table: 'users', column: 'id' }).optional() })`.
+- `updateTaskValidator = vine.create({ title: title().optional(), status: vine.enum(TASK_STATUSES).optional(), assigneeId: vine.number().withoutDecimals().positive().exists({ table: 'users', column: 'id' }).optional() })`.
   - Cuerpo vacío: es un no-op válido y devuelve 200 con la tarea tal cual. Se descarta exigir al menos un campo porque añadiría una regla ad hoc sin valor para ningún consumidor.
   - El controlador valida antes de tocar el modelo, así que un error en cualquier campo deja la tarea intacta.
-- `TASK_STATUSES = ['pending', 'in_progress', 'done'] as const` vive en el modelo y lo comparten el validador y la migración. Así no se repite la lista.
+- **Claves presentes con `null` en la actualización.** El bodyparser convierte `""` y `"   "` en `null`, y `optional()` de VineJS trata `null` como ausente. Sin más, un `PATCH` con título en blanco se ignoraría en silencio y respondería 200, lo que contradice la spec.
+  - Regla: si el cuerpo trae `title`, `status` o `assigneeId` con valor `null`, se rechaza con 422 y `rule: 'required'` sobre ese campo, en el mismo formato `{ errors: [{ message, rule, field }] }` que VineJS.
+  - Implementación: el controlador comprueba las claves con `Object.hasOwn(request.body(), key)`. Si alguna presente es `null`, lanza `errors.E_VALIDATION_ERROR` de VineJS con esos elementos antes de llamar al validador.
+  - Se descarta `nullable()` en el validador, porque convertiría «borrar el título» en algo válido.
+  - Se descarta un validador construido dinámicamente según las claves presentes, por ser más difícil de leer.
 - En `store`, el controlador fija `status: 'pending'` y `assigneeId: auth.user.id`. No confía en el default de la BD para que la respuesta 201 salga ya con el estado.
 
 ### D5. Frontend: cliente de API y tipos
@@ -80,7 +89,7 @@ PATCH  /api/v1/tasks/:id   → TasksController.update
   - `TaskStatus = 'pending' | 'in_progress' | 'done'`.
   - `Task = { id; title; status; assignee: { id; fullName: string | null } }`.
   - `TASK_STATUS_LABELS`, el mapa `pending → Pendiente`, `in_progress → En curso`, `done → Hecho`. Es la única traducción de identificador a texto.
-- `lib/api.ts`: `listTasks(token)`, `createTask(token, title)` y `updateTask(token, id, patch)`, con el mismo `request()` existente.
+- `lib/api.ts`: `listTasks(token)`, `createTask(token, title)` y `updateTask(token, id, patch)`, con el mismo `request()` existente. Hay que ampliar su tipo `method` de `'GET' | 'POST'` a `'GET' | 'POST' | 'PATCH'`.
 - Mensajes del título. Se añade `title: 'el título'` a `FIELD_LABELS` y dos casos específicos en `translate()` para `field === 'title'`:
   - `required` da «Escribe un título para la tarea.».
   - `maxLength` da «El título no puede superar los 255 caracteres.».
@@ -119,6 +128,7 @@ PATCH  /api/v1/tasks/:id   → TasksController.update
 - **[Cambio a «Hecho» por error, a un clic]** → Las transiciones son libres, así que se deshace con otro clic. PA-7 sigue abierto.
 - **[La reasignación y la edición del título solo existen por API]** → Sin consumidor en la web, nadie las prueba a mano. Mitigación: los escenarios de la spec las cubren y son verificables con `curl`.
 - **[Responsable sin nombre: «Sin nombre» repetido en varias filas]** → No permite distinguir a dos personas sin nombre. Es la consecuencia aceptada de la restricción 6 (nunca el correo).
+- **[Reasignar a cualquier id permite tantear qué ids de usuario existen]** → `exists` responde 422 o 200 según el id, y cualquiera puede asignar una tarea a un tercero sin que este lo sepa. Es la consecuencia aceptada de los roles planos (restricción 5). Los ids no son secretos, y la respuesta solo expone `{ id, fullName }`, nunca el correo.
 - **[`useAuthForm` usado fuera de auth]** → Acoplamiento de nombre. Se puede renombrar en un refactor posterior, sin cambios de comportamiento.
 
 ## Migration Plan

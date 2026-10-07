@@ -97,3 +97,28 @@ La pantalla de perfil SHALL mostrar:
 
 - **WHEN** una persona pulsa «Tareas» en su perfil
 - **THEN** ve la lista de tareas
+
+### Requirement: Sesión recordada que no se puede restaurar
+
+Si el servidor rechaza la sesión recordada, la aplicación web SHALL olvidarla y llevar al inicio de sesión con el aviso «Tu sesión ha caducado. Vuelve a iniciar sesión.». Si el servidor no responde o falla con otro error, SHALL llevar al inicio de sesión con el aviso correspondiente, pero SHALL conservar la sesión recordada para recuperarla al recargar cuando el servidor funcione.
+
+#### Scenario: Sesión rechazada por el servidor
+
+- **WHEN** una persona abre la aplicación con una sesión recordada que el servidor ya no acepta
+- **THEN** acaba en el inicio de sesión con el aviso «Tu sesión ha caducado. Vuelve a iniciar sesión.», y al recargar sigue sin sesión y sin aviso
+
+#### Scenario: Servidor inaccesible al abrir la aplicación
+
+- **WHEN** una persona abre la aplicación con una sesión recordada y el servidor está apagado
+- **THEN** ve el inicio de sesión con el aviso de servidor inaccesible, y al recargar con el servidor ya encendido vuelve a ver la lista de tareas
+
+#### Scenario: Error interno al abrir la aplicación
+
+- **WHEN** una persona abre la aplicación con una sesión recordada y el servidor responde con un error interno al comprobarla
+- **THEN** ve el inicio de sesión con el aviso «Algo ha ido mal en el servidor. Inténtalo de nuevo en un momento.», y al recargar con el servidor ya recuperado vuelve a ver la lista de tareas
+
+#### Scenario: Aviso de sesión frente a error del formulario
+
+- **WHEN** la pantalla de inicio de sesión muestra un aviso de sesión perdida y la persona envía el formulario con credenciales incorrectas
+- **THEN** el aviso general pasa a mostrar el error del envío en lugar del de la sesión perdida
+

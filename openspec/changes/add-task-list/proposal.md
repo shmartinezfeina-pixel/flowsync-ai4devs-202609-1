@@ -51,7 +51,7 @@ Fuera de alcance:
 
 ### Modified Capabilities
 
-- `auth`: cambia el destino de la navegación. Al iniciar sesión, al registrarse, al abrir una dirección desconocida o al abrir login o registro con sesión, se llega a la lista de tareas en vez de al perfil. El perfil gana un enlace a Tareas.
+- `auth`: cambia el destino de la navegación. Al iniciar sesión, al registrarse, al abrir una dirección desconocida o al abrir login o registro con sesión, se llega a la lista de tareas en vez de al perfil. Lo mismo ocurre al recuperar una sesión recordada. El perfil gana un enlace a Tareas.
 
 ## Puntos abiertos
 
@@ -60,6 +60,7 @@ Fuera de alcance:
 - **Umbral del título (PA-9).** Se fija en 255 caracteres como decisión de este change. El umbral es revisable; la conducta de avisar y no recortar no lo es.
 - **Reasignación y edición sin interfaz.** La API acepta título y responsable al actualizar, pero la web solo ofrece el estado. La interfaz llegará con las historias de reasignar (RF-10) y editar (RF-11), que necesitan una forma de listar personas.
 - **Ediciones simultáneas (PA-8).** Si dos personas cambian la misma tarea a la vez, gana la última escritura de cada campo. La lista no se refresca sola, así que cada persona ve lo que había al cargarla, más sus propios cambios.
+- **Reasignar sin saber a quién.** Con roles planos, cualquiera puede asignar una tarea a cualquier id registrado. La respuesta 422 o 200 deja tantear qué ids existen, aunque nunca se expone el correo. Es un riesgo aceptado (ver design).
 - **Cuántas tareas «En curso» por persona (PA-4).** No se limita.
 
 ## Impact
@@ -72,7 +73,7 @@ Fuera de alcance:
 - **Frontend**:
   - Tres llamadas nuevas en el cliente de API.
   - Tipos de tarea.
-  - Página de Tareas que reutiliza `Card`, `Button`, `Input`, `Label`, `Alert` y `FieldError`.
+  - Página de Tareas que reutiliza `Card`, `Button`, `Input`, `Label` y `Alert` de `components/ui/`, más los componentes propios `FieldError` y `FullScreenLoader`.
   - Nueva ruta protegida y cambio de los destinos de redirección.
   - Enlace entre Perfil y Tareas.
 - **Sin dependencias nuevas** en ninguna de las dos capas.
