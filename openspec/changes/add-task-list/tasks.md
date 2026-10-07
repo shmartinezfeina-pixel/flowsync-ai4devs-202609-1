@@ -4,8 +4,8 @@
 
 ## 1. Modelo de datos (backend)
 
-- [ ] 1.1 Crear `app/models/task_status.ts`, sin dependencias del esquema, con `TASK_STATUSES` (`pending`, `in_progress`, `done`) y el tipo `TaskStatus`, según design D1. Verificar con `npm run typecheck` en `backend/`.
-- [ ] 1.2 Crear con `node ace make:migration` la tabla `tasks`, importando los estados de `#models/task_status` y nunca de `#models/task`:
+- [x] 1.1 Crear `app/models/task_status.ts`, sin dependencias del esquema, con `TASK_STATUSES` (`pending`, `in_progress`, `done`) y el tipo `TaskStatus`, según design D1. Verificar con `npm run typecheck` en `backend/`.
+- [x] 1.2 Crear con `node ace make:migration` la tabla `tasks`, importando los estados de `#models/task_status` y nunca de `#models/task`:
   - `title`: `string(255)`, no nulo.
   - `status`: `enum(TASK_STATUSES)`, no nulo, default `pending`.
   - `assignee_id`: FK a `users.id`, no nula, `CASCADE`.
@@ -13,20 +13,20 @@
   - Sin columna de vencimiento (design D1).
 
   Verificar que `node ace migration:run` pasa y que `database/schema.ts` contiene `TaskSchema` con esas columnas.
-- [ ] 1.3 Crear `app/models/task.ts`, que extiende `TaskSchema` y declara la relación `assignee` (`belongsTo` User por `assigneeId`). Si el esquema generado tipa `status` como `string`, estrecharlo con `declare status: TaskStatus`. Verificar con `npm run typecheck` en `backend/`.
+- [x] 1.3 Crear `app/models/task.ts`, que extiende `TaskSchema` y declara la relación `assignee` (`belongsTo` User por `assigneeId`). Si el esquema generado tipa `status` como `string`, estrecharlo con `declare status: TaskStatus`. Verificar con `npm run typecheck` en `backend/`.
 
 ## 2. API de tareas (backend)
 
-- [ ] 2.1 Crear `app/validators/task.ts` con `createTaskValidator` (solo `title`) y `updateTaskValidator` (`title`, `status` y `assigneeId` opcionales, con `vine.enum(TASK_STATUSES)` y `vine.number().withoutDecimals().positive().exists(...)` sobre `users.id`), según design D4. Verificar con `npm run typecheck`.
-- [ ] 2.2 Crear `app/transformers/task_transformer.ts` (`id`, `title`, `status`, `assignee`) y `assignee_transformer.ts` (`id`, `fullName`), según design D3. Verificar con `npm run typecheck`.
-- [ ] 2.3 Crear `app/controllers/tasks_controller.ts`:
+- [x] 2.1 Crear `app/validators/task.ts` con `createTaskValidator` (solo `title`) y `updateTaskValidator` (`title`, `status` y `assigneeId` opcionales, con `vine.enum(TASK_STATUSES)` y `vine.number().withoutDecimals().positive().exists(...)` sobre `users.id`), según design D4. Verificar con `npm run typecheck`.
+- [x] 2.2 Crear `app/transformers/task_transformer.ts` (`id`, `title`, `status`, `assignee`) y `assignee_transformer.ts` (`id`, `fullName`), según design D3. Verificar con `npm run typecheck`.
+- [x] 2.3 Crear `app/controllers/tasks_controller.ts`:
   - `index`: precarga `assignee` y no usa `orderBy`.
   - `store`: devuelve 201, `pending` y responsable igual al usuario autenticado.
   - `update`: en este orden, (1) rechaza con 422 `required` las claves `title`, `status` o `assigneeId` presentes con `null`, lanzando `errors.E_VALIDATION_ERROR`; (2) valida; (3) `findOrFail`; (4) `merge`, `save` y precarga `assignee` (design D3 y D4).
 
   Verificar con `npm run typecheck`.
-- [ ] 2.4 Registrar en `start/routes.ts` un grupo `.prefix('tasks').as('tasks')` con `middleware.auth()` y solo `GET /`, `POST /` y `PATCH /:id` (matcher numérico). Arrancar `npm run dev` para regenerar `.adonisjs/`. Verificar que `node ace list:routes` muestra exactamente esas tres rutas de tareas (el `GET` aparece como `GET|HEAD`, lo normal en AdonisJS) y ninguna `show` ni `destroy`.
-- [ ] 2.5 Verificar la API con `curl` y un token de una cuenta de prueba, cubriendo los escenarios de `specs/tasks/spec.md`:
+- [x] 2.4 Registrar en `start/routes.ts` un grupo `.prefix('tasks').as('tasks')` con `middleware.auth()` y solo `GET /`, `POST /` y `PATCH /:id` (matcher numérico). Arrancar `npm run dev` para regenerar `.adonisjs/`. Verificar que `node ace list:routes` muestra exactamente esas tres rutas de tareas (el `GET` aparece como `GET|HEAD`, lo normal en AdonisJS) y ninguna `show` ni `destroy`.
+- [x] 2.5 Verificar la API con `curl` y un token de una cuenta de prueba, cubriendo los escenarios de `specs/tasks/spec.md`:
   - Acceso: 401 sin token y con un token inventado. 404 en `GET /tasks/1` y en `DELETE /tasks/1`.
   - Creación: 201 con `pending` y el creador como responsable, ignorando el `status` o `assigneeId` enviados.
   - Validación del título: 422 con título vacío, con solo espacios y con 256 caracteres. Se acepta con 255.
@@ -35,7 +35,7 @@
   - Campos en blanco al actualizar: 422 con solo el título «   », y con estado válido más título en blanco, en cuyo caso no cambia nada.
   - Tarea inexistente: 404 con datos válidos y 422 con datos inválidos.
   - Forma de la respuesta: el JSON del responsable no contiene `email`.
-- [ ] 2.6 Ejecutar `npm run lint` y `npm run format` en `backend/`, y commitear el diff regenerado de `database/schema.ts` y `.adonisjs/`. Verificar que el lint sale limpio.
+- [x] 2.6 Ejecutar `npm run lint` y `npm run format` en `backend/`, y commitear el diff regenerado de `database/schema.ts` y `.adonisjs/`. Verificar que el lint sale limpio.
 
 ## 3. Cliente de API y tipos (frontend)
 
