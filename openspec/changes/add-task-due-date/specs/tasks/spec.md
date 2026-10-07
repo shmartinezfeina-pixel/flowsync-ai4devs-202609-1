@@ -11,6 +11,11 @@ Una tarea SHALL poder tener una fecha de vencimiento, que es una fecha de calend
 - **WHEN** un cliente crea una tarea enviando solo el título
 - **THEN** la tarea nace con `dueDate` a `null` e `isOverdue` a `false`
 
+#### Scenario: El formulario de creación no ofrece fecha
+
+- **WHEN** una persona crea una tarea desde la lista
+- **THEN** solo escribe el título y en ningún momento se le ofrece ni se le sugiere poner una fecha
+
 #### Scenario: Tareas anteriores al cambio
 
 - **WHEN** se pide la lista justo después de aplicar el cambio
@@ -66,8 +71,13 @@ El sistema SHALL calcular `isOverdue` cada vez que devuelve una tarea, con el d�
 
 #### Scenario: El cliente intenta fijar el veredicto
 
-- **WHEN** un cliente actualiza una tarea sin fecha enviando `isOverdue: true`
-- **THEN** la respuesta trae `isOverdue` a `false` y la tarea no cambia por ello
+- **WHEN** un cliente envía `isOverdue: false` al actualizar el título de una tarea pendiente con fecha anterior al día de referencia
+- **THEN** la respuesta trae `isOverdue` a `true`, porque el veredicto solo lo da la regla
+
+#### Scenario: Veredicto enviado al crear
+
+- **WHEN** un cliente crea una tarea sin fecha enviando `isOverdue: true`
+- **THEN** recibe `201` con `isOverdue` a `false`
 
 ### Requirement: Día de referencia de quien mira
 
@@ -87,6 +97,11 @@ El día de referencia SHALL ser la fecha que el cliente envía en la cabecera `X
 
 - **WHEN** un cliente pide la lista con `X-Client-Date: 2026-02-30`
 - **THEN** recibe `422`
+
+#### Scenario: Cabecera inválida al actualizar
+
+- **WHEN** un cliente cambia el estado de una tarea con `X-Client-Date: 07/10/2026`
+- **THEN** recibe `422` y el estado de la tarea no cambia
 
 ### Requirement: Lectura individual de una tarea
 
@@ -131,6 +146,11 @@ Al crear y al actualizar, el sistema SHALL aceptar una `dueDate` válida, inclus
 - **WHEN** una persona cambia la fecha de una tarea vencida a una posterior al día de referencia
 - **THEN** la respuesta trae `isOverdue` a `false`
 
+#### Scenario: Fecha de una tarea ajena
+
+- **WHEN** una persona pone fecha a una tarea cuyo responsable es otra persona
+- **THEN** recibe `200` con la fecha puesta, sin permiso especial ni advertencia
+
 #### Scenario: Reasignar no toca la fecha
 
 - **WHEN** una persona cambia el responsable de una tarea con fecha
@@ -166,12 +186,17 @@ La web SHALL tener una pantalla por tarea, solo accesible con sesión, a la que 
 
 ### Requirement: Editar la fecha desde la pantalla de una tarea
 
-La fecha SHALL guardarse sola al salir del campo, sin botón de guardar, y el resultado SHALL verse al instante. Un botón «Quitar fecha» SHALL quitarla sin confirmación. Una fecha incompleta o inválida SHALL NOT guardarse: SHALL conservarse la anterior y mostrarse bajo el campo «Introduce una fecha completa y válida.».
+La fecha SHALL guardarse sola, sin botón de guardar, en cuanto el campo tenga una fecha completa, al salir del campo y al dejar la pantalla, y el resultado SHALL verse al instante. «Quitar fecha» SHALL quitarla sin confirmación. Una fecha incompleta o inválida SHALL NOT guardarse: se conserva la anterior y se muestra bajo el campo «Introduce una fecha completa y válida.».
 
 #### Scenario: Poner la fecha
 
 - **WHEN** una persona escribe una fecha en una tarea sin fecha y sale del campo
 - **THEN** la fecha queda guardada y la pantalla la refleja sin recargar
+
+#### Scenario: Elegir en el calendario
+
+- **WHEN** una persona elige un día en el selector de fecha sin salir del campo
+- **THEN** la fecha se guarda sola en un momento y, si queda vencida, aparece la señal «Vencida»
 
 #### Scenario: Quitar sin confirmar
 
@@ -183,9 +208,14 @@ La fecha SHALL guardarse sola al salir del campo, sin botón de guardar, y el re
 - **WHEN** una persona deja el campo con una fecha a medio escribir y sale de él
 - **THEN** ve «Introduce una fecha completa y válida.» bajo el campo y la tarea conserva la fecha anterior
 
+#### Scenario: Quitar con una fecha a medio escribir
+
+- **WHEN** una persona tiene una fecha a medio escribir y pulsa «Quitar fecha»
+- **THEN** la tarea queda sin fecha y no aparece el aviso de fecha incompleta
+
 #### Scenario: Al volver a la lista ya está guardado
 
-- **WHEN** una persona cambia la fecha y pulsa «Volver a la lista»
+- **WHEN** una persona cambia la fecha y sale de la pantalla con «Volver a la lista» o con el botón Atrás del navegador
 - **THEN** al abrir de nuevo la tarea, la fecha nueva sigue ahí
 
 ### Requirement: Señal de tarea vencida
@@ -227,6 +257,35 @@ La API de tareas SHALL ofrecer exactamente cuatro operaciones: listar todas las 
 - **THEN** recibe `404` y la tarea sigue existiendo
 
 ## MODIFIED Requirements
+
+### Requirement: Listar todas las tareas
+
+`GET /api/v1/tasks` SHALL responder `200` con todas las tareas del espacio dentro de `data`, sin ningún filtro por persona. El conjunto de tareas y sus datos SHALL ser los mismos sea quien sea quien lo pida; solo `isOverdue` puede variar según el día de referencia de cada petición. Listar SHALL NOT modificar ninguna tarea. El sistema no garantiza ningún orden concreto.
+
+#### Scenario: Dos personas ven lo mismo
+
+- **WHEN** dos personas distintas piden la lista sin que nadie haya cambiado nada entre medias
+- **THEN** reciben exactamente el mismo conjunto de tareas
+
+#### Scenario: Tarea ajena visible
+
+- **WHEN** otra persona crea una tarea y yo pido la lista
+- **THEN** esa tarea aparece en mi lista con su responsable
+
+#### Scenario: Espacio sin tareas
+
+- **WHEN** se pide la lista y no hay ninguna tarea creada
+- **THEN** la respuesta es `200` con `data` como lista vacía
+
+#### Scenario: Mirar no cambia nada
+
+- **WHEN** se pide la lista varias veces seguidas
+- **THEN** ninguna tarea cambia de título, estado ni responsable
+
+#### Scenario: Mismo día, mismo veredicto
+
+- **WHEN** dos personas piden la lista con el mismo `X-Client-Date`
+- **THEN** reciben también los mismos valores de `isOverdue`
 
 ### Requirement: Datos de una tarea en la API
 
@@ -352,6 +411,11 @@ La web SHALL tener una pantalla «Tareas», solo accesible con sesión, que mues
 
 - **WHEN** hay tareas con fecha, algunas vencidas, y una persona mira la lista
 - **THEN** no ve ninguna fecha ni marca de vencida en ninguna fila
+
+#### Scenario: Sin fecha no se penaliza en la lista
+
+- **WHEN** una persona mira en la lista una tarea sin fecha
+- **THEN** no ve ningún aviso, recordatorio ni indicación de que le falte algo
 
 ## REMOVED Requirements
 
