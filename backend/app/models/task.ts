@@ -13,4 +13,15 @@ export default class Task extends TaskSchema {
 
   @belongsTo(() => User, { foreignKey: 'assigneeId' })
   declare assignee: BelongsTo<typeof User>
+
+  /**
+   * The only place that decides whether a task is overdue. `today` is the
+   * viewer's calendar day (`YYYY-MM-DD`), so the verdict is computed on every
+   * read and never stored. A due date equal to today is not overdue yet.
+   */
+  isOverdueOn(today: string): boolean {
+    // Right after `create` without a date, Lucid leaves `dueDate` undefined.
+    if (!this.dueDate || this.status === 'done') return false
+    return this.dueDate.toISODate()! < today
+  }
 }

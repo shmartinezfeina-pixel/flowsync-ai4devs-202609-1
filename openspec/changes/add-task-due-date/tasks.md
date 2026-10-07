@@ -4,12 +4,12 @@
 
 ## 1. Fecha de vencimiento y regla (backend)
 
-- [ ] 1.1 Crear con `node ace make:migration` una migración que añada a `tasks` la columna `due_date` (`date`, nullable), con un `down` que la elimine (design D1). Verificar:
+- [x] 1.1 Crear con `node ace make:migration` una migración que añada a `tasks` la columna `due_date` (`date`, nullable), con un `down` que la elimine (design D1). Verificar:
   - `node ace migration:run` pasa sobre la BD con tareas existentes.
   - `database/schema.ts` tiene `@column.date() declare dueDate: DateTime | null` en `TaskSchema`.
   - `GET /api/v1/tasks` sigue respondiendo.
-- [ ] 1.2 Añadir al modelo `Task` el método `isOverdueOn(today: string): boolean`, que devuelve `false` si `!this.dueDate` (nulo o `undefined` tras `create`) o si el estado es `done`, y si no compara cadenas ISO con `<` estricto (design D2). Verificar con `npm run typecheck`.
-- [ ] 1.3 Crear `app/services/reference_day.ts` con `referenceDay(request)`, según design D3:
+- [x] 1.2 Añadir al modelo `Task` el método `isOverdueOn(today: string): boolean`, que devuelve `false` si `!this.dueDate` (nulo o `undefined` tras `create`) o si el estado es `done`, y si no compara cadenas ISO con `<` estricto (design D2). Verificar con `npm run typecheck`.
+- [x] 1.3 Crear `app/services/reference_day.ts` con `referenceDay(request)`, según design D3:
   - Sin cabecera, devuelve el día UTC.
   - Con `YYYY-MM-DD` válido, lo devuelve.
   - Si no, lanza `E_VALIDATION_ERROR` sobre `X-Client-Date`.
@@ -18,17 +18,17 @@
 
 ## 2. API de la fecha (backend)
 
-- [ ] 2.1 Añadir `dueDate` a `TaskTransformer` (`toISODate()` o `null`) e `isOverdue` (`isOverdueOn(today)`), recibiendo `today` como argumento del constructor (design D4). Verificar con `npm run typecheck`.
-- [ ] 2.2 Añadir a `createTaskValidator` y `updateTaskValidator` el campo `dueDate: vine.date({ formats: ['YYYY-MM-DD'] }).nullable().optional()` (design D5). Verificar con `npm run typecheck`.
-- [ ] 2.3 Actualizar `TasksController` (design D3, D5 y D6):
+- [x] 2.1 Añadir `dueDate` a `TaskTransformer` (`toISODate()` o `null`) e `isOverdue` (`isOverdueOn(today)`), recibiendo `today` como argumento del constructor (design D4). Verificar con `npm run typecheck`.
+- [x] 2.2 Añadir a `createTaskValidator` y `updateTaskValidator` el campo `dueDate: vine.date({ formats: ['YYYY-MM-DD'] }).nullable().optional()` (design D5). Verificar con `npm run typecheck`.
+- [x] 2.3 Actualizar `TasksController` (design D3, D5 y D6):
   - Todas las acciones resuelven `referenceDay` primero y pasan `today` al transformer.
   - `store` acepta `dueDate`.
   - `update` asigna el payload validado con `merge` (un `dueDate: null` quita la fecha) y sigue rechazando los `null` de `title`, `status` y `assigneeId`.
   - Nueva acción `show` con `preload` y `firstOrFail`.
 
   Verificar con `npm run typecheck`.
-- [ ] 2.4 Registrar `GET /api/v1/tasks/:id` (matcher numérico) en el grupo `tasks` y regenerar `.adonisjs/` con el dev server. Verificar que `node ace list:routes` muestra exactamente cuatro rutas de tareas y ninguna `destroy`.
-- [ ] 2.5 Verificar con `curl` los escenarios de `specs/tasks/spec.md`:
+- [x] 2.4 Registrar `GET /api/v1/tasks/:id` (matcher numérico) en el grupo `tasks` y regenerar `.adonisjs/` con el dev server. Verificar que `node ace list:routes` muestra exactamente cuatro rutas de tareas y ninguna `destroy`.
+- [x] 2.5 Verificar con `curl` los escenarios de `specs/tasks/spec.md`:
   - **Forma**: `dueDate: null` e `isOverdue: false` en las tareas existentes, y sin `email`.
   - **Lectura individual**: 200, y 404 si no existe. `DELETE` sigue dando 404.
   - **Crear**: sin fecha da 201 (no 500) con `dueDate: null`. Con una fecha pasada da 201 con `isOverdue: true`. Si se envía `isOverdue: true` sin fecha, se ignora.
@@ -44,7 +44,7 @@
   - **Quitar**: `dueDate: null` y `dueDate: ""` dan 200 sin fecha.
   - **Fecha inválida**: `2026-02-30` y `2026-10-20T10:00:00Z` dan 422 sobre `dueDate`, y la fecha anterior se conserva.
   - **Día de referencia**: la misma tarea con `X-Client-Date` `2026-10-07` y `2026-10-08` da veredictos distintos. Sin cabecera se usa el día UTC. `X-Client-Date: 2026-02-30` en la lista da 422. `X-Client-Date: 07/10/2026` en un `PATCH` de estado da 422 y el estado no cambia.
-- [ ] 2.6 Ejecutar `npm run lint`, `npm run format` y `npm run typecheck` en `backend/` y commitear el diff regenerado de `database/schema.ts` y `.adonisjs/`. Revertir cambios de formato ajenos al change, como el salto de línea final de `package.json`. Verificar que todo sale limpio.
+- [x] 2.6 Ejecutar `npm run lint`, `npm run format` y `npm run typecheck` en `backend/` y commitear el diff regenerado de `database/schema.ts` y `.adonisjs/`. Revertir cambios de formato ajenos al change, como el salto de línea final de `package.json`. Verificar que todo sale limpio.
 
 ## 3. Cliente de API y tipos (frontend)
 
