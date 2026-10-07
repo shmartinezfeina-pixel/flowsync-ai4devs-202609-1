@@ -39,38 +39,38 @@
 
 ## 3. Cliente de API y tipos (frontend)
 
-- [ ] 3.1 Añadir a `src/lib/types.ts` `TaskStatus`, `Task` (responsable con `id` y `fullName`) y `TASK_STATUS_LABELS` (`Pendiente` / `En curso` / `Hecho`). Verificar con `npm run build`.
-- [ ] 3.2 Ampliar el tipo `method` de `request()` a `'GET' | 'POST' | 'PATCH'` y añadir a `src/lib/api.ts` `listTasks`, `createTask` y `updateTask`. Añadir también `title` a `FIELD_LABELS` y los mensajes específicos del título: «Escribe un título para la tarea.» y «El título no puede superar los 255 caracteres.», según design D5. Verificar con `npm run build` y comprobar que los mensajes de auth no cambian.
+- [x] 3.1 Añadir a `src/lib/types.ts` `TaskStatus`, `Task` (responsable con `id` y `fullName`) y `TASK_STATUS_LABELS` (`Pendiente` / `En curso` / `Hecho`). Verificar con `npm run build`.
+- [x] 3.2 Ampliar el tipo `method` de `request()` a `'GET' | 'POST' | 'PATCH'` y añadir a `src/lib/api.ts` `listTasks`, `createTask` y `updateTask`. Añadir también `title` a `FIELD_LABELS` y los mensajes específicos del título: «Escribe un título para la tarea.» y «El título no puede superar los 255 caracteres.», según design D5. Verificar con `npm run build` y comprobar que los mensajes de auth no cambian.
 
 ## 4. Pantalla de Tareas (frontend)
 
-- [ ] 4.1 Crear `src/pages/tasks-page.tsx` con la carga inicial: loader, aviso de error con «Reintentar» y estado vacío que explica la lista e invita a crear la primera tarea. Verificar en el navegador:
+- [x] 4.1 Crear `src/pages/tasks-page.tsx` con la carga inicial: loader, aviso de error con «Reintentar» y estado vacío que explica la lista e invita a crear la primera tarea. Verificar en el navegador:
   - Con la BD sin tareas se ve el estado vacío.
   - Con el backend parado se ve el aviso y «Reintentar» recupera la lista al arrancarlo.
-- [ ] 4.2 Añadir el formulario de creación con un único `Input` de título y el botón «Crear tarea», reutilizando `useAuthForm(['title'])`. La tarea creada se añade al final de la lista y el campo se vacía. Verificar en el navegador:
+- [x] 4.2 Añadir el formulario de creación con un único `Input` de título y el botón «Crear tarea», reutilizando `useAuthForm(['title'])`. La tarea creada se añade al final de la lista y el campo se vacía. Verificar en el navegador:
   - Crear «Revisar el PRD» la muestra al momento con tu nombre (o «Sin nombre») y «Pendiente».
   - Vacío o solo espacios da «Escribe un título para la tarea.».
   - 256 caracteres da el aviso de longitud y el texto se conserva.
   - No hay ningún control de responsable, estado ni fecha.
-- [ ] 4.3 Pintar cada fila con:
+- [x] 4.3 Pintar cada fila con:
   - El título.
   - `fullName ?? 'Sin nombre'`.
   - El grupo de tres `Button` de estado, con el actual destacado y `aria-pressed`.
 
   Verificar en el navegador que no aparecen correos, ids, fechas ni marcas de vencida.
-- [ ] 4.4 Implementar el cambio de estado optimista con rollback y aviso de error, desactivando los botones de la fila mientras hay petición en vuelo (design D6). Verificar en el navegador:
+- [x] 4.4 Implementar el cambio de estado optimista con rollback y aviso de error, desactivando los botones de la fila mientras hay petición en vuelo (design D6). Verificar en el navegador:
   - Pulsar «En curso» cambia la fila al momento, sin diálogo, y persiste al recargar.
   - Funciona igual en una tarea de otra persona.
   - Con el backend parado, la fila vuelve a su estado y aparece el aviso de servidor inaccesible.
 
 ## 5. Navegación (frontend)
 
-- [ ] 5.1 Registrar `/tasks` dentro de `ProtectedRoute` en `app-routes.tsx` y cambiar el comodín `*` y `PublicOnlyRoute` para que redirijan a `/tasks`. Verificar en el navegador:
+- [x] 5.1 Registrar `/tasks` dentro de `ProtectedRoute` en `app-routes.tsx` y cambiar el comodín `*` y `PublicOnlyRoute` para que redirijan a `/tasks`. Verificar en el navegador:
   - Login y registro aterrizan en Tareas.
   - Una dirección desconocida lleva a Tareas con sesión y al login sin ella.
   - Abrir `/login` con sesión lleva a Tareas.
-- [ ] 5.2 Añadir el enlace «Perfil» en la cabecera de Tareas y «Tareas» en la tarjeta de Perfil. Verificar en el navegador que se navega en ambos sentidos.
-- [ ] 5.3 Ejecutar `npm run lint` y `npm run build` en `frontend/`. Verificar que ambos salen limpios.
+- [x] 5.2 Añadir el enlace «Perfil» en la cabecera de Tareas y «Tareas» en la tarjeta de Perfil. Verificar en el navegador que se navega en ambos sentidos.
+- [x] 5.3 Ejecutar `npm run lint` y `npm run build` en `frontend/`. Verificar que ambos salen limpios.
 
 ## 6. Verificación de extremo a extremo
 
