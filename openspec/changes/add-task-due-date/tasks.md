@@ -48,8 +48,8 @@
 
 ## 3. Cliente de API y tipos (frontend)
 
-- [ ] 3.1 En `src/lib/types.ts`, añadir `dueDate: string | null` e `isOverdue: boolean` a `Task`, y `dueDate?: string | null` a `TaskPatch`. Verificar con `npm run build`.
-- [ ] 3.2 En `src/lib/api.ts` (design D7):
+- [x] 3.1 En `src/lib/types.ts`, añadir `dueDate: string | null` e `isOverdue: boolean` a `Task`, y `dueDate?: string | null` a `TaskPatch`. Verificar con `npm run build`.
+- [x] 3.2 En `src/lib/api.ts` (design D7):
   - `request()` envía siempre `X-Client-Date` con la fecha local del navegador.
   - Nueva función `getTask(token, id)`.
   - `translate()` da «Introduce una fecha completa y válida.» para cualquier error en `dueDate`, y «La fecha de tu dispositivo no es válida. Revisa el reloj del sistema.» para `X-Client-Date`.
@@ -58,10 +58,10 @@
 
 ## 4. Pantalla de una tarea (frontend)
 
-- [ ] 4.1 Crear `src/pages/task-page.tsx` con la carga de la tarea: loader, «Esta tarea no existe.» en 404, aviso con «Reintentar» en otros fallos, y el enlace «Volver a la lista». Debe mostrar título, responsable (o «Sin nombre») y estado como texto no editable (design D8). Verificar en el navegador:
+- [x] 4.1 Crear `src/pages/task-page.tsx` con la carga de la tarea: loader, «Esta tarea no existe.» en 404, aviso con «Reintentar» en otros fallos, y el enlace «Volver a la lista». Debe mostrar título, responsable (o «Sin nombre») y estado como texto no editable (design D8). Verificar en el navegador:
   - Abrir una tarea existente muestra sus datos.
   - Abrir `/tasks/99999` muestra el aviso.
-- [ ] 4.2 Añadir el campo «Fecha de vencimiento (opcional)» (`Input type="date"`), sin botón de guardar, según design D8:
+- [x] 4.2 Añadir el campo «Fecha de vencimiento (opcional)» (`Input type="date"`), sin botón de guardar, según design D8:
   - Guardado con espera de 500 ms en `change` cuando la fecha es completa y el año es ≥ 1000; inmediato al salir del campo y al desmontar la página.
   - Peticiones serializadas, solo una en vuelo.
   - «Quitar fecha» sin confirmación, con `preventDefault` en `mousedown`.
@@ -75,7 +75,7 @@
   - Cambiar la fecha y pulsar Atrás inmediatamente la conserva al reabrir la tarea.
   - «Quitar fecha» la quita sin diálogo, también con una fecha a medio escribir.
   - Una fecha a medio escribir, al salir, muestra «Introduce una fecha completa y válida.» y conserva la anterior.
-- [ ] 4.3 Añadir la señal «Vencida» (icono y texto, asociada al campo) solo cuando `isOverdue` es `true`. Verificar en el navegador:
+- [x] 4.3 Añadir la señal «Vencida» (icono y texto, asociada al campo) solo cuando `isOverdue` es `true`. Verificar en el navegador:
   - Una fecha de ayer en una tarea pendiente muestra «Vencida» al guardarse.
   - Una fecha de hoy no la muestra.
   - Una tarea sin fecha no muestra ninguna señal ni aviso.
@@ -83,17 +83,17 @@
 
 ## 5. Navegación y lista (frontend)
 
-- [ ] 5.1 Registrar `/tasks/:id` dentro de `ProtectedRoute` en `app-routes.tsx` y convertir el título de cada fila de la lista en un `Link` a esa ruta. Verificar en el navegador:
+- [x] 5.1 Registrar `/tasks/:id` dentro de `ProtectedRoute` en `app-routes.tsx` y convertir el título de cada fila de la lista en un `Link` a esa ruta. Verificar en el navegador:
   - Pulsar un título abre su tarea y «Volver a la lista» regresa.
   - Sin sesión, `/tasks/1` lleva al login.
   - La lista sigue sin mostrar fechas, marcas de vencida ni avisos por no tener fecha, aunque haya tareas vencidas.
   - El formulario de creación sigue pidiendo solo el título.
-- [ ] 5.2 Ejecutar `npm run lint` y `npm run build` en `frontend/`. Verificar que ambos salen limpios.
+- [x] 5.2 Ejecutar `npm run lint` y `npm run build` en `frontend/`. Verificar que ambos salen limpios.
 
 ## 6. Verificación de extremo a extremo
 
 - [ ] 6.1 Con dos navegadores, uno con el reloj o la zona horaria del sistema en otro día, verificar que la misma tarea con fecha de ayer para uno y de hoy para el otro sale «Vencida» solo para el primero.
-- [ ] 6.2 Ejecutar `npx -y @fission-ai/openspec@latest validate add-task-due-date --strict` y verificar que sale válido.
+- [x] 6.2 Ejecutar `npx -y @fission-ai/openspec@latest validate add-task-due-date --strict` y verificar que sale válido.
 
 ## Workflow follow-up
 

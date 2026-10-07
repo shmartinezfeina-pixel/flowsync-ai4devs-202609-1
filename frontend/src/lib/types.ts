@@ -49,6 +49,10 @@ export type Task = {
   id: number
   title: string
   status: TaskStatus
+  /** Fecha de calendario `YYYY-MM-DD`, o `null` si no tiene. */
+  dueDate: string | null
+  /** Veredicto del servidor para el día de quien mira; nunca se calcula aquí. */
+  isOverdue: boolean
   assignee: {
     id: number
     fullName: string | null
@@ -60,4 +64,6 @@ export type TaskPatch = Partial<{
   title: string
   status: TaskStatus
   assigneeId: number
+  /** `null` quita la fecha. */
+  dueDate: string | null
 }>
