@@ -1,11 +1,15 @@
-# Matriz de trazabilidad — «Lo que cada tarea muestra de su responsable»
+# 🅰 Parte A: la matriz y los tests que faltan, con reloj
+-------------------------------------------------------------------------------------------
+
+## Matriz de trazabilidad — «Lo que cada tarea muestra de su responsable»
 
 Requisito: `openspec/specs/tasks/spec.md`, «Lo que cada tarea muestra de su responsable».
 Suite analizada: `backend/tests/` tal y como estaba al empezar (solo `functional/auth/`).
 Revisión de cobertura contrastada con el subagente `adversarial-reviewer-sml`.
 
-**Escenarios del requisito: 4** (3 en la spec; «La tarea no filtra datos de cuenta» junta dos situaciones —tarea suelta y dentro de la lista— y se desdobla en dos filas).
-**Escenarios cubiertos: 0 de 4.**
+- **Escenarios del requisito:** 4  (3 en la spec; «La tarea no filtra datos de cuenta» junta dos situaciones —tarea suelta y dentro de la lista— y se desdobla en dos filas).
+- **Escenarios cubiertos:** 0
+
 
 | Escenario | Test que lo cubre | Estado | Qué faltó (si «No lo sé») |
 |---|---|---|---|
@@ -14,11 +18,7 @@ Revisión de cobertura contrastada con el subagente `adversarial-reviewer-sml`.
 | Al obtener la lista, el `assignee` de cada tarea no trae email ni datos de acceso | | No cubierto | |
 | Si el responsable se registró sin nombre, su nombre llega nulo y sus iniciales siguen llegando | | No cubierto | |
 
-Lo que se le parece y no vale como cobertura:
 
-- `registrarse devuelve la cuenta y un token que ya sirve` (`auth/signup.spec.ts`) comprueba `initials === 'AL'` del usuario recién registrado, no del `assignee` de una tarea.
-- `sin nombre, las iniciales salen del email` (`auth/initials.spec.ts`) comprueba las iniciales en la respuesta del login, no en una tarea, y no mira que `fullName` llegue nulo.
-- `el perfil devuelve la cuenta del token presentado` (`auth/session.spec.ts`) comprueba que el perfil **sí** trae `email`: lo contrario, y en otro endpoint.
 
 ## Tests añadidos
 
@@ -45,3 +45,11 @@ AssertionError: expected { id: 14, …(5) } to not have nested property 'email'
 
 - `POST /api/v1/tasks` y `PATCH /api/v1/tasks/:id/status` también usan `TaskTransformer`, así que su `assignee` también trae el email. El scenario dice «se obtiene cualquier tarea, suelta o dentro de la lista»; si crear o cambiar el estado cuenta como «obtener» es interpretable, y por eso no se ha abierto fila para ellos.
 - Las iniciales de una cuenta sin nombre salen del email (`app/models/user.ts:12`: `ada@example.com` da `AE`). Es lo que pide la spec de `auth` y el scenario solo exige que lleguen iniciales, así que el test pasa, pero esas iniciales dejan ver parte del email.
+
+
+# 🅱 Parte B: las tres líneas
+----------------------------------------------------------------------------------------------------
+
+- Escenarios cubiertos antes **0** de **4**. Escenarios cubiertos después **3** (por que se ha desdoblado uno de ellos).
+- Al revisar la carpeta test vi que no habia nada, ni la seccion de tasks por lo que no habia test que cubieran los escenarios propuestos
+- En el escenario **La tarea no filtra datos de cuenta**; la prueba no es correcta o mejor dicho no está completa ya que cuando devuelve una lista y no comprueba qué campos se devuelven y qué campos no. 
