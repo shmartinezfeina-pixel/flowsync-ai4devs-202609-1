@@ -8,17 +8,29 @@ import { TASK_STATUSES } from '#models/task_status'
 const title = () => vine.string().trim().minLength(1).maxLength(255)
 
 /**
- * Validator to use when creating a task. The title is the only input; any
- * other key (status, assignee) is dropped, so the task always starts pending
- * and assigned to its creator.
+ * Calendar date with no time of day. Past dates are accepted on purpose, and
+ * `null` (or an empty value) means "no due date".
+ */
+const dueDate = () =>
+  vine
+    .date({ formats: ['YYYY-MM-DD'] })
+    .nullable()
+    .optional()
+
+/**
+ * Validator to use when creating a task. Only the title is required; any
+ * other key (status, assignee, isOverdue) is dropped, so the task always starts
+ * pending and assigned to its creator.
  */
 export const createTaskValidator = vine.create({
   title: title(),
+  dueDate: dueDate(),
 })
 
 /**
- * Validator to use when updating a task. Every field is optional, but keys
- * sent as `null` must be rejected before reaching it (see TasksController).
+ * Validator to use when updating a task. Every field is optional. A `null`
+ * title, status or assignee must be rejected before reaching it (see
+ * TasksController); a `null` due date is valid and removes the date.
  */
 export const updateTaskValidator = vine.create({
   title: title().optional(),
@@ -29,4 +41,5 @@ export const updateTaskValidator = vine.create({
     .positive()
     .exists({ table: 'users', column: 'id' })
     .optional(),
+  dueDate: dueDate(),
 })

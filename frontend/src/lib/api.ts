@@ -55,6 +55,11 @@ const label = (field?: string) => FIELD_LABELS[field ?? ''] ?? 'el campo'
 function translate(error: BackendError): string {
   const { rule, field, meta } = error
 
+  if (field === 'dueDate') return 'Introduce una fecha completa y válida.'
+  if (field === 'X-Client-Date') {
+    return 'La fecha de tu dispositivo no es válida. Revisa el reloj del sistema.'
+  }
+
   // El título de una tarea tiene frases propias: las genéricas sonarían raras
   // en un formulario de un solo campo.
   if (field === 'title') {
@@ -119,6 +124,16 @@ function toApiError(status: number, body: unknown): ApiError {
   )
 }
 
+/**
+ * El día de calendario local de quien mira (`YYYY-MM-DD`). El servidor decide
+ * con él si una tarea está vencida. No vale `toISOString()`: da el día UTC.
+ */
+function localDay(): string {
+  const now = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+}
+
 type RequestOptions = {
   method?: 'GET' | 'POST' | 'PATCH'
   body?: unknown
@@ -129,7 +144,10 @@ async function request<T>(
   path: string,
   { method = 'GET', body, token }: RequestOptions = {},
 ): Promise<T> {
-  const headers: Record<string, string> = { Accept: 'application/json' }
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'X-Client-Date': localDay(),
+  }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   if (token) headers.Authorization = `Bearer ${token}`
 
@@ -185,6 +203,12 @@ export function logout(token: string): Promise<void> {
 
 export function listTasks(token: string): Promise<Task[]> {
   return request<{ data: Task[] }>('/api/v1/tasks', { token }).then(
+    (response) => response.data,
+  )
+}
+
+export function getTask(token: string, id: number): Promise<Task> {
+  return request<{ data: Task }>(`/api/v1/tasks/${id}`, { token }).then(
     (response) => response.data,
   )
 }
