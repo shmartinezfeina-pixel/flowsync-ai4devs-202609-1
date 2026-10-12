@@ -23,7 +23,7 @@ Lo que se le parece y no vale como cobertura:
 ## Tests añadidos
 
 Fichero: `backend/tests/functional/tasks/assignee.spec.ts` (grupo `Tasks | responsable`), uno por fila no cubierta.
-Ejecutados con `node ace test functional --files=tasks/assignee`: **3 pasan, 1 falla**.
+Quien hace la petición es siempre una cuenta distinta del responsable, para que el `assignee` no se confunda con la cuenta del token. Ejecutados con `node ace test functional --files=tasks/assignee`: **3 pasan, 1 falla**.
 
 | Escenario | Test | Resultado |
 |---|---|---|
@@ -39,7 +39,7 @@ AssertionError: expected { id: 14, …(5) } to not have nested property 'email'
   at tests/functional/tasks/assignee.spec.ts:77
 ```
 
-`GET /api/v1/tasks` serializa con `TaskTransformer` (`app/transformers/task_transformer.ts:9`), que usa `UserTransformer` para el `assignee`, y este expone `email`, `createdAt` y `updatedAt` (`app/transformers/user_transformer.ts:6-13`). La tarea suelta usa `TaskAssigneeTransformer` (solo `id`, `fullName`, `initials`), cuyo propio comentario advierte de no reutilizar `UserTransformer`. **El código no se ha tocado**: el fallo se deja visible a propósito.
+`GET /api/v1/tasks` serializa con `TaskTransformer` (`app/transformers/task_transformer.ts:9`), que usa `UserTransformer` para el `assignee`, y este expone `email`, `createdAt` y `updatedAt` (`app/transformers/user_transformer.ts:6-13`). La tarea suelta usa `TaskAssigneeTransformer` (solo `id`, `fullName`, `initials`), cuyo propio comentario advierte de no reutilizar `UserTransformer`. Aunque se quitara solo el email, el test seguiría fallando: comprueba que el `assignee` tenga exactamente `id`, `fullName` e `initials`, y la lista también expone las fechas de la cuenta. **El código no se ha tocado**: el fallo se deja visible a propósito.
 
 ### Hallazgos del revisor fuera de las filas
 

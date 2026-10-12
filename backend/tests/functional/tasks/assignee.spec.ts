@@ -27,20 +27,29 @@ test.group('Tasks | responsable', (group) => {
       assigneeId: user.id,
     })
 
-    return { user, task }
+    // Quien mira es otra cuenta: así el `assignee` no se puede confundir con
+    // la cuenta del token.
+    const viewer = await User.create({
+      fullName: 'Alan Turing',
+      email: 'alan@example.com',
+      password: 'secreto123',
+    })
+
+    return { user, task, viewer }
   }
 
   test('el responsable de una tarea llega con su nombre y sus iniciales', async ({
     client,
     assert,
   }) => {
-    const { user, task } = await tareaDe('Ada Lovelace')
+    const { user, task, viewer } = await tareaDe('Ada Lovelace')
 
-    const response = await client.get(`/api/v1/tasks/${task.id}`).qs({ today: HOY }).loginAs(user)
+    const response = await client.get(`/api/v1/tasks/${task.id}`).qs({ today: HOY }).loginAs(viewer)
 
     response.assertStatus(200)
 
     const { assignee } = response.body().data
+    assert.equal(assignee.id, user.id)
     assert.equal(assignee.fullName, 'Ada Lovelace')
     assert.equal(assignee.initials, 'AL')
   })
@@ -49,15 +58,17 @@ test.group('Tasks | responsable', (group) => {
     client,
     assert,
   }) => {
-    const { user, task } = await tareaDe('Ada Lovelace')
+    const { task, viewer } = await tareaDe('Ada Lovelace')
 
-    const response = await client.get(`/api/v1/tasks/${task.id}`).qs({ today: HOY }).loginAs(user)
+    const response = await client.get(`/api/v1/tasks/${task.id}`).qs({ today: HOY }).loginAs(viewer)
 
     response.assertStatus(200)
 
     const assignee = response.body().data.assignee
     assert.notProperty(assignee, 'email')
     assert.notProperty(assignee, 'password')
+    // Ningún otro dato de la cuenta: solo lo que identifica al responsable.
+    assert.sameMembers(Object.keys(assignee), ['id', 'fullName', 'initials'])
     assert.notInclude(JSON.stringify(assignee), 'ada@example.com')
     assert.notInclude(JSON.stringify(assignee), 'secreto123')
   })
@@ -66,16 +77,20 @@ test.group('Tasks | responsable', (group) => {
     client,
     assert,
   }) => {
-    const { user, task } = await tareaDe('Ada Lovelace')
+    const { task, viewer } = await tareaDe('Ada Lovelace')
 
-    const response = await client.get('/api/v1/tasks').loginAs(user)
+    const response = await client.get('/api/v1/tasks').loginAs(viewer)
 
     response.assertStatus(200)
 
-    const enLista = response.body().data.find((t: { id: number }) => t.id === task.id)
-    assert.exists(enLista)
+    const enLista = (response.body().data as Array<{ id: number; assignee: object }>).find(
+      (t) => t.id === task.id
+    )
+    if (!enLista) return assert.fail('la tarea no sale en la lista')
     assert.notProperty(enLista.assignee, 'email')
     assert.notProperty(enLista.assignee, 'password')
+    // Ningún otro dato de la cuenta: solo lo que identifica al responsable.
+    assert.sameMembers(Object.keys(enLista.assignee), ['id', 'fullName', 'initials'])
     assert.notInclude(JSON.stringify(enLista.assignee), 'ada@example.com')
     assert.notInclude(JSON.stringify(enLista.assignee), 'secreto123')
   })
@@ -84,16 +99,16 @@ test.group('Tasks | responsable', (group) => {
     client,
     assert,
   }) => {
-    const { user, task } = await tareaDe(null, 'sin-nombre@example.com')
+    const { task, viewer } = await tareaDe(null, 'sin-nombre@example.com')
 
-    const response = await client.get(`/api/v1/tasks/${task.id}`).qs({ today: HOY }).loginAs(user)
+    const response = await client.get(`/api/v1/tasks/${task.id}`).qs({ today: HOY }).loginAs(viewer)
 
     response.assertStatus(200)
 
     const { assignee } = response.body().data
     assert.isNull(assignee.fullName)
-    assert.isString(assignee.initials)
-    assert.isNotEmpty(assignee.initials)
+    // Las de auth: sin nombre salen del email (`sin-nombre@example.com` → SE).
+    assert.equal(assignee.initials, 'SE')
     assert.notProperty(assignee, 'email')
   })
 })
