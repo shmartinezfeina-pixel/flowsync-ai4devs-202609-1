@@ -1,0 +1,55 @@
+# 🅰 Parte A: la matriz y los tests que faltan, con reloj
+-------------------------------------------------------------------------------------------
+
+## Matriz de trazabilidad — «Lo que cada tarea muestra de su responsable»
+
+Requisito: `openspec/specs/tasks/spec.md`, «Lo que cada tarea muestra de su responsable».
+Suite analizada: `backend/tests/` tal y como estaba al empezar (solo `functional/auth/`).
+Revisión de cobertura contrastada con el subagente `adversarial-reviewer-sml`.
+
+- **Escenarios del requisito:** 4  (3 en la spec; «La tarea no filtra datos de cuenta» junta dos situaciones —tarea suelta y dentro de la lista— y se desdobla en dos filas).
+- **Escenarios cubiertos:** 0
+
+
+| Escenario | Test que lo cubre | Estado | Qué faltó (si «No lo sé») |
+|---|---|---|---|
+| Al obtener una tarea de "Ada Lovelace", su `assignee` trae ese nombre y sus iniciales | | No cubierto | |
+| Al obtener una tarea suelta, su `assignee` no trae email ni datos de acceso | | No cubierto | |
+| Al obtener la lista, el `assignee` de cada tarea no trae email ni datos de acceso | | No cubierto | |
+| Si el responsable se registró sin nombre, su nombre llega nulo y sus iniciales siguen llegando | | No cubierto | |
+
+
+
+## Tests añadidos
+
+Fichero: `backend/tests/functional/tasks/assignee.spec.ts` (grupo `Tasks | responsable`), uno por fila no cubierta.
+Quien hace la petición es siempre una cuenta distinta del responsable, para que el `assignee` no se confunda con la cuenta del token. Ejecutados con `node ace test functional --files=tasks/assignee`: **3 pasan, 1 falla**.
+
+| Escenario | Test | Resultado |
+|---|---|---|
+| Responsable identificable | `el responsable de una tarea llega con su nombre y sus iniciales` | Pasa |
+| No filtra datos — tarea suelta | `una tarea suelta no expone el email ni datos de acceso de su responsable` | Pasa |
+| No filtra datos — dentro de la lista | `dentro de la lista la tarea no expone el email ni datos de acceso de su responsable` | **Falla** |
+| Responsable sin nombre | `un responsable sin nombre llega con el nombre nulo y con iniciales` | Pasa |
+
+### El fallo
+
+```
+AssertionError: expected { id: 14, …(5) } to not have nested property 'email'
+  at tests/functional/tasks/assignee.spec.ts:77
+```
+
+`GET /api/v1/tasks` serializa con `TaskTransformer` (`app/transformers/task_transformer.ts:9`), que usa `UserTransformer` para el `assignee`, y este expone `email`, `createdAt` y `updatedAt` (`app/transformers/user_transformer.ts:6-13`). La tarea suelta usa `TaskAssigneeTransformer` (solo `id`, `fullName`, `initials`), cuyo propio comentario advierte de no reutilizar `UserTransformer`. Aunque se quitara solo el email, el test seguiría fallando: comprueba que el `assignee` tenga exactamente `id`, `fullName` e `initials`, y la lista también expone las fechas de la cuenta. **El código no se ha tocado**: el fallo se deja visible a propósito.
+
+### Hallazgos del revisor fuera de las filas
+
+- `POST /api/v1/tasks` y `PATCH /api/v1/tasks/:id/status` también usan `TaskTransformer`, así que su `assignee` también trae el email. El scenario dice «se obtiene cualquier tarea, suelta o dentro de la lista»; si crear o cambiar el estado cuenta como «obtener» es interpretable, y por eso no se ha abierto fila para ellos.
+- Las iniciales de una cuenta sin nombre salen del email (`app/models/user.ts:12`: `ada@example.com` da `AE`). Es lo que pide la spec de `auth` y el scenario solo exige que lleguen iniciales, así que el test pasa, pero esas iniciales dejan ver parte del email.
+
+
+# 🅱 Parte B: las tres líneas
+----------------------------------------------------------------------------------------------------
+
+- Escenarios cubiertos antes **0** de **4**. Escenarios cubiertos después **3** (por que se ha desdoblado uno de ellos).
+- Al revisar la carpeta test vi que no habia nada, ni la seccion de tasks por lo que no habia test que cubieran los escenarios propuestos
+- En el escenario **La tarea no filtra datos de cuenta**; la prueba no es correcta o mejor dicho no está completa ya que cuando devuelve una lista y no comprueba qué campos se devuelven y qué campos no. 
